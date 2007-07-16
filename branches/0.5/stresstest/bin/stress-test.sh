@@ -32,7 +32,7 @@ done
 
 PSQL_COMMAND=psql
 
-RESULTS_FILE=../test/results.sql
+RESULTS_FILE=../data/results.sql
 CONFIG_DB=jdbc:postgresql://localhost:5432/bruce_config?user=bruce
 MASTER_DB=jdbc:postgresql://localhost:5432/bruce_master?user=bruce
 SLAVE1_DB=jdbc:postgresql://localhost:5432/bruce_slave_1?user=bruce
