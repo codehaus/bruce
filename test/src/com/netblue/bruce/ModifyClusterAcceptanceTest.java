@@ -56,7 +56,14 @@ public class ModifyClusterAcceptanceTest extends ReplicationTest
     {
         super.setUp();
         // First let's ensure out database is setup correctly for the test
-        SetupClusterFromExistingDbAcceptanceTest.createTestSchemas();
+        try
+        {
+            SetupClusterFromExistingDbAcceptanceTest.createTestSchemas();
+        }
+        catch (Exception e)
+        {
+            LOGGER.error("Cannot create test schemas!", e);
+        }
     }
 
     @Test

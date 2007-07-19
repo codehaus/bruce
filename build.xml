@@ -38,6 +38,7 @@
     </target>
 
     <target name="schemaexport" depends="compile, make-hibernate-config">
+        <echo message="Using PostgreSQL URL: ${postgresql.URL}"/>
         <property name="hibernate.connection.url" value="${postgresql.URL}"/>
         <hibernatetool destdir="${dir.schema}">
             <annotationconfiguration configurationFile="${hibernate.config}"/>
@@ -251,6 +252,7 @@
             <jvmarg value="-Dpostgresql.db_name=${postgresql.db_name}"/>
             <jvmarg value="-Dpostgresql.URL=${postgresql.URL}"/>
             <jvmarg value="-Dpostgresql.bin=${postgresql.bin}"/>
+            <jvmarg value="-Dpostgresql.port=${postgresql.port}"/>
             <jvmarg value="-Dhibernate.connection.url=${postgresql.URL}"/>
             <jvmarg value="-Dhibernate.connection.username=${user.name}"/>
             <jvmarg value="-Dhibernate.dialect=org.hibernate.dialect.PostgreSQLDialect"/>
