@@ -57,9 +57,9 @@ public class TestDatabaseHelper
     public static final String CONFIG_DB                 = "bruce";
     public static final String POSTGRESQL_ADMIN_URL_KEY  = "postgresql.adminURL";
     public static final String POSTGRESQL_TEST_URL_KEY   = "postgresql.URL";
-    private static final String POSTGRESQL_PORT_KEY      = "postgresql.port";
-    private static final String POSTGRESQL_PORT_DEFAULT  = "5432";
-    private static final String JDBC_POSTGRESQL_PREFIX = "jdbc:postgresql://localhost:";
+    public static final String POSTGRESQL_PORT_KEY      = "postgresql.port";
+    public static final String POSTGRESQL_PORT_DEFAULT  = "5432";
+    public static final String JDBC_POSTGRESQL_PREFIX = "jdbc:postgresql://localhost:";
     
     public static synchronized Properties getPostgresProperties()
     {
