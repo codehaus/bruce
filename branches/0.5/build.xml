@@ -282,8 +282,11 @@
             <jvmarg value="-Dpostgresql.URL=${postgresql.URL}"/>
             <jvmarg value="-Dpostgresql.bin=${postgresql.bin}"/>
             <jvmarg value="-Dpostgresql.port=${postgresql.port}"/>
+            <jvmarg value="-Dpostgresql.user=${postgresql.user}"/>
+            <jvmarg value="-Dpostgresql.password=${postgresql.password}"/>
             <jvmarg value="-Dhibernate.connection.url=${postgresql.URL}"/>
-            <jvmarg value="-Dhibernate.connection.username=${user.name}"/>
+            <jvmarg value="-Dhibernate.connection.username=${postgresql.user}"/>
+            <jvmarg value="-Dhibernate.connection.password=${postgresql.password}"/>
             <jvmarg value="-Dhibernate.dialect=org.hibernate.dialect.PostgreSQLDialect"/>
             <jvmarg value="-Ddir.test.data=${dir.test.data}"/>
             <jvmarg value="-Ddir.schema=${dir.schema}"/>
