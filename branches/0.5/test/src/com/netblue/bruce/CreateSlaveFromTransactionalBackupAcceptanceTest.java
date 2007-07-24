@@ -79,7 +79,7 @@ public class CreateSlaveFromTransactionalBackupAcceptanceTest extends Replicatio
             // Use psql to load a dump of a master database
             final String postgresBinDir = System.getProperty("postgresql.bin");
             final String psqlBinary = (postgresBinDir == null ? "" : postgresBinDir + "/") + "psql";
-            final String command = psqlBinary + " " + NEW_DB + " -f " + TestDatabaseHelper.getDataFile("bruce_master.dump.sql").getAbsolutePath();
+            final String command = psqlBinary + " -p " + System.getProperty("postgresql.port") + " " + NEW_DB + " -f " + TestDatabaseHelper.getDataFile("bruce_master.dump.sql").getAbsolutePath();
             LOGGER.info("Restoring master database from backup.  Command = " + command);
             final Process process = Runtime.getRuntime().exec(command);
             process.waitFor();
@@ -189,7 +189,7 @@ public class CreateSlaveFromTransactionalBackupAcceptanceTest extends Replicatio
             // Use psql to load a dump of a master database
             final String postgresBinDir = System.getProperty("postgresql.bin");
             final String psqlBinary = (postgresBinDir == null ? "" : postgresBinDir + "/") + "psql";
-            final String command = psqlBinary + " " + NEW_DB + " -f " + TestDatabaseHelper.getDataFile("bruce_slave_1.dump.sql").getAbsolutePath();
+            final String command = psqlBinary + " -p " + System.getProperty("postgresql.port") + " " + NEW_DB + " -f " + TestDatabaseHelper.getDataFile("bruce_slave_1.dump.sql").getAbsolutePath();
             LOGGER.info("Restoring master database from backup.  Command = " + command);
             final Process process = Runtime.getRuntime().exec(command);
             process.waitFor();
