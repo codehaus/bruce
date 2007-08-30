@@ -54,12 +54,12 @@ import java.util.Map.Entry;
  * @version $Id:$
  */
 
-public class IncludetableRegex {
+public class IncludetableRegexTest {
     @BeforeClass public static void setupTestClass() throws ClassNotFoundException, SQLException {
 	// Log4j config
 	BasicConfigurator.resetConfiguration();
 	BasicConfigurator.configure();
-	logger = Logger.getLogger(IncludetableRegex.class);
+	logger = Logger.getLogger(IncludetableRegexTest.class);
 	// Properties config
 	properties = System.getProperties();
 	// DB connection config
