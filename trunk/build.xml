@@ -25,17 +25,6 @@
     <taskdef name="hibernatetool" classname="org.hibernate.tool.ant.HibernateToolTask"
         classpathref="classpath"/>
 
-    <target name="make-hibernate-config">
-        <property name="hibernate.config" location="${dir.classes}/hibernate.cfg.xml"/>
-        <property name="hibernate.config.template" location="${dir.src}/hibernate.cfg.xml.template"/>
-        <copy file="${hibernate.config.template}" tofile="${hibernate.config}">
-            <filterset>
-              <filter token="DB_URI" value="${postgresql.URL}"/>
-              <filter token="DB_USERNAME" value="${user.name}"/>
-            </filterset>
-        </copy>
-    </target>
-
     <target name="make-test-data">
         <copy file="${dir.test.data}/admin-test-insert.xml.template" tofile="${dir.test.data}/admin-test-insert.xml">
             <filterset>
@@ -108,22 +97,6 @@
 
 <!-- 12345678911234567892123456789312345678904123456789512345678961234567897123456789812345678991234567891 -->
 
-    <target name="schemaexport" depends="compile, make-hibernate-config">
-        <echo message="Using PostgreSQL URL: ${postgresql.URL}"/>
-        <property name="hibernate.connection.url" value="${postgresql.URL}"/>
-        <hibernatetool destdir="${dir.schema}">
-            <annotationconfiguration configurationFile="${hibernate.config}"/>
-            <hbm2ddl
-                drop="true"
-                create="true"
-                export="true"
-                outputfilename="cluster-ddl.sql"
-                delimiter=";"
-                format="true"/>
-        </hibernatetool>
-        <copy file="${dir.schema}/cluster-ddl.sql" todir="${dir.classes}"/>
-    </target>
-
     <target name="clean" description="Cleans ${dir.classes}">
         <delete dir="${dir.build}"/>
         <delete dir="${dir.release}"/>
@@ -151,7 +124,7 @@
     <!-- =============================================== -->
     <!-- Jar package                                     -->
     <!-- =============================================== -->
-    <target name="jar" description="makes jar" depends="compile, compile-test, make-hibernate-config">
+    <target name="jar" description="makes jar" depends="compile, compile-test">
         <mkdir dir="${dir.release}"/>
         <jar destfile="${dir.release}/${jarfilename}" basedir="${dir.classes}">
             <manifest>
@@ -269,7 +242,7 @@
     <!-- =============================================== -->
     <!-- Compile tests                                   -->
     <!-- =============================================== -->
-    <target name="compile-test" description="Compiles junit tests" depends="compile, make-hibernate-config">
+    <target name="compile-test" description="Compiles junit tests" depends="compile">
         <mkdir dir="${dir.test.classes}"/>
         <copy todir="${dir.classes}">
             <fileset dir="${dir.test}"
