@@ -42,9 +42,8 @@ public class ReplicationDatabaseBuilder extends DatabaseBuilder
 
     private static final Logger logger = Logger.getLogger(ReplicationDatabaseBuilder.class);
     private static final String[] replicationDDL = {
-	//"DROP SCHEMA bruce cascade",
-	// "CREATE SCHEMA bruce",
-	//"GRANT usage ON SCHEMA bruce TO public",
+	"create schema bruce",
+	"grant usage on schema bruce to public",
 	"CREATE TABLE bruce.replication_version "+
 	"           ( major int, "+
 	"             minor int, "+

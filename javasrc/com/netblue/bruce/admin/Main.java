@@ -94,6 +94,7 @@ public class Main
         {
             listClusters();
         }
+	dataSource.close();
         LOGGER.info("Complete");
     }
 
@@ -147,24 +148,28 @@ public class Main
     {
         LOGGER.info("Listing cluster metadata for " + options.getList());
         ClusterFactory factory = ClusterFactory.getClusterFactory();
-        Set<Cluster> clusters = factory.getAllClusters();
-        for (Cluster cluster : clusters)
-        {
-            System.out.println("Metadata for cluster [" + cluster.getName() + "]");
-            final Node master = cluster.getMaster();
-
-            // Print out the master node
-            System.out.println("Master");
-            printNode(master);
-
-            Set<Node> slaves = cluster.getSlaves();
-            System.out.println("\nSlaves");
-            for (Node slave : slaves)
-            {
-                printNode(slave);
-                System.out.println();
-            }
-        }
+	try {
+	    Set<Cluster> clusters = factory.getAllClusters();
+	    for (Cluster cluster : clusters)
+		{
+		    System.out.println("Metadata for cluster [" + cluster.getName() + "]");
+		    final Node master = cluster.getMaster();
+		    
+		    // Print out the master node
+		    System.out.println("Master");
+		    printNode(master);
+		    
+		    Set<Node> slaves = cluster.getSlaves();
+		    System.out.println("\nSlaves");
+		    for (Node slave : slaves)
+			{
+			    printNode(slave);
+			    System.out.println();
+			}
+		}
+	} finally {
+	    factory.close();
+	}
     }
 
     private void printNode(final Node node) throws SQLException
@@ -238,11 +243,13 @@ public class Main
         if (operation != DatabaseOperation.DELETE)
         {
             ClusterFactory clusterFactory = ClusterFactory.getClusterFactory();
-
-            for (String nodeName : nodeNames)
-            {
+	    try {
+		for (String nodeName : nodeNames) {
                 nodes.add(clusterFactory.getNode(nodeName));
-            }
+		}
+	    } finally {
+		clusterFactory.close();
+	    } 
         }
         return nodes;
     }

@@ -76,7 +76,7 @@ public class Version
         }
         catch (SQLException e)
         {
-            LOGGER.error(e);
+            LOGGER.debug(e);
             sameVersion = false;
         }
         finally

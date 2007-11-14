@@ -91,6 +91,12 @@ public class PersistentClusterFactory extends ClusterFactory
         }
     }
 
+    /**
+     * Destroy the ClusterFactory and release all resources (caches, connection pools, etc)
+     */
+    public void close() {
+	sessionFactory.close();
+    }
 
     /**
      * Gets a <code>Cluster</code> instance for the current node topology.
