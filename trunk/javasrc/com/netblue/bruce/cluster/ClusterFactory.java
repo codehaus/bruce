@@ -138,6 +138,11 @@ public abstract class   ClusterFactory
     }
 
     /**
+     * Destroy the ClusterFactory and release all resources (caches, connection pools, etc)
+     */
+    public abstract void close();
+
+    /**
      * Gets a <code>Cluster</code> instance for the current node topology.
      * @param name of the cluster
      * @return the <code>Cluster</code> - never null

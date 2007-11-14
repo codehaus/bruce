@@ -4,7 +4,6 @@
     <property file="build.properties"/>
     <property file="postgres.properties"/>
 
-    <property name="dir.schema" location="schema"/>
     <property name="dir.test.data" location="test/data"/>
 
     <!-- override the generic build file's classpath.  it includes waaaayyy too much stuff
@@ -24,78 +23,6 @@
 
     <taskdef name="hibernatetool" classname="org.hibernate.tool.ant.HibernateToolTask"
         classpathref="classpath"/>
-
-    <target name="make-test-data">
-        <copy file="${dir.test.data}/admin-test-insert.xml.template" tofile="${dir.test.data}/admin-test-insert.xml">
-            <filterset>
-              <filter token="DB_PORT" value="${postgresql.port}"/>
-            </filterset>
-        </copy>
-        <copy file="${dir.test.data}/admin-test-setup.xml.template" tofile="${dir.test.data}/admin-test-setup.xml">
-            <filterset>
-              <filter token="DB_PORT" value="${postgresql.port}"/>
-            </filterset>
-        </copy>
-        <copy file="${dir.test.data}/admin-test-slave-from-backup.xml.template" tofile="${dir.test.data}/admin-test-slave-from-backup.xml">
-            <filterset>
-              <filter token="DB_PORT" value="${postgresql.port}"/>
-            </filterset>
-        </copy>
-        <copy file="${dir.test.data}/admin-test-insert.xml.template" tofile="${dir.test.data}/admin-test-swap-master-slave.xml">
-            <filterset>
-              <filter token="DB_PORT" value="${postgresql.port}"/>
-            </filterset>
-        </copy>
-        <copy file="${dir.test.data}/slave-status.xml.template" tofile="${dir.test.data}/slave-status.xml">
-            <filterset>
-              <filter token="DB_PORT" value="${postgresql.port}"/>
-            </filterset>
-        </copy>
-	<copy file="${dir.test.data}/includetable-regexp.xml.template" 
-	      tofile="${dir.test.data}/includetable-regexp-0.xml">
-	  <filterset>
-	    <filter token="INCLUDETABLE" value=""/>     
-	  </filterset>
-	</copy> 
-	<copy file="${dir.test.data}/includetable-regexp.xml.template" 
-	      tofile="${dir.test.data}/includetable-regexp-1.xml">
-	  <filterset>
-	    <filter token="INCLUDETABLE" value="1"/>     
-	  </filterset>
-	</copy> 
-	<copy file="${dir.test.data}/includetable-regexp.xml.template" 
-	      tofile="${dir.test.data}/includetable-regexp-27.xml">
-	  <filterset>
-	    <filter token="INCLUDETABLE" value="123456789112345678921234567"/>     
-	  </filterset>
-	</copy> 
-	<copy file="${dir.test.data}/includetable-regexp.xml.template" 
-	      tofile="${dir.test.data}/includetable-regexp-27.xml">
-	  <filterset>
-	    <filter token="INCLUDETABLE" value="123456789112345678921234567"/>     
-	  </filterset>
-	</copy> 
-	<copy file="${dir.test.data}/includetable-regexp.xml.template" 
-	      tofile="${dir.test.data}/includetable-regexp-255.xml">
-	  <filterset>
-	    <filter token="INCLUDETABLE" value="123456789112345678921234567893123456789041234567895123456789612345678971234567898123456789912345678911234567891123456789212345678931234567890412345678951234567896123456789712345678981234567899123456789212345678911234567892123456789312345678904123456789512345"/>
-	  </filterset>
-	</copy> 
-	<copy file="${dir.test.data}/includetable-regexp.xml.template" 
-	      tofile="${dir.test.data}/includetable-regexp-256.xml">
-	  <filterset>
-	    <filter token="INCLUDETABLE" value="1234567891123456789212345678931234567890412345678951234567896123456789712345678981234567899123456789112345678911234567892123456789312345678904123456789512345678961234567897123456789812345678991234567892123456789112345678921234567893123456789041234567895123456"/>
-	  </filterset>
-	</copy> 
-	<copy file="${dir.test.data}/includetable-regexp.xml.template" 
-	      tofile="${dir.test.data}/includetable-regexp-1256.xml">
-	  <filterset>
-	    <filter token="INCLUDETABLE" value="123456789112345678921234567893123456789041234567895123456789612345678971234567898123456789912345678911234567891123456789212345678931234567890412345678951234567896123456789712345678981234567899123456789212345678911234567892123456789312345678904123456789512345678961234567897123456789812345678991234567893123456789112345678921234567893123456789041234567895123456789612345678971234567898123456789912345678941234567891123456789212345678931234567890412345678951234567896123456789712345678981234567899123456789512345678911234567892123456789312345678904123456789512345678961234567897123456789812345678991234567896123456789112345678921234567893123456789041234567895123456789612345678971234567898123456789912345678971234567891123456789212345678931234567890412345678951234567896123456789712345678981234567899123456789812345678911234567892123456789312345678904123456789512345678961234567897123456789812345678991234567899123456789112345678921234567893123456789041234567895123456789612345678971234567898123456789912345678911234567891123456789212345678931234567890412345678951234567896123456789712345678981234567899123456789112345678911234567892123456789312345678904123456789512345678961234567897123456789812345678991234567892123456789112345678921234567893123456789041234567895123456"/>
-	  </filterset>
-	</copy> 
-    </target>
-
-<!-- 12345678911234567892123456789312345678904123456789512345678961234567897123456789812345678991234567891 -->
 
     <target name="clean" description="Cleans ${dir.classes}">
         <delete dir="${dir.build}"/>
@@ -179,10 +106,6 @@
             <fileset dir="." includes="sample/**/*"/>
             <fileset dir="." includes="stresstest/**/*"/>
             <fileset dir=".">
-                <include name="schema/*.sql"/>
-                <exclude name="schema/unit-tests-ddl.sql"/>
-            </fileset>
-            <fileset dir=".">
                 <include name="lib/*.jar"/>
                 <include name="lib/hibernate/**/*.jar"/>
                 <include name="lib/activemq/**/*.jar"/>
@@ -258,15 +181,15 @@
     </target>
     
     <target name="test-one-class" 
-            depends="jar, compile-test, make-test-data"
+            depends="jar, compile-test"
 	    description="Runs the tests in a single test class">
         <fail message="property test.this.class must be set (ant -Dtest.this.class=[class name] test-one-class" unless="test.this.class"/>
         <!-- Setup system properties for test data -->
         <property name="dir.test.data" location="test/data"/>
-        <property name="dir.schema" location="schema"/>
 
         <junit printsummary="yes" haltonfailure="no" fork="yes" forkmode="perTest" showoutput="yes">
             <!-- lots o' system props -->
+<!-- 	    <jvmarg value="-agentlib:hprof=heap=dump,format=b"/> -->
             <jvmarg value="-Xmx1g"/>
 	    <jvmarg value="-Dlog4j.configuration=file://${basedir}/bin/log4j.properties"/>
             <jvmarg value="-Dpostgresql.adminURL=${postgresql.adminURL}"/>
@@ -281,7 +204,6 @@
             <jvmarg value="-Dhibernate.connection.password=${postgresql.password}"/>
             <jvmarg value="-Dhibernate.dialect=org.hibernate.dialect.PostgreSQLDialect"/>
             <jvmarg value="-Ddir.test.data=${dir.test.data}"/>
-            <jvmarg value="-Ddir.schema=${dir.schema}"/>
             <jvmarg value="-Dbruce.nextSnapshotUnavailableSleep=1000"/>
             <classpath refid="classpath"/>
             <formatter type="plain" usefile="false"/>
@@ -295,13 +217,12 @@
     </target>
     
     <target name="test"
-            depends="jar, compile-test, make-test-data"
+            depends="jar, compile-test"
             description="overrides the generic test target">
 
         <!-- Setup system properties for test data -->
         <mkdir dir="${dir.junit.output}/xml"/>
         <property name="dir.test.data" location="test/data"/>
-        <property name="dir.schema" location="schema"/>
         <property name="dir.coverage" location="${dir.build}/coverage"/>
 
         <!-- Prime the code coverage task -->
@@ -347,7 +268,6 @@
             <jvmarg value="-Dhibernate.connection.password=${postgresql.password}"/>
             <jvmarg value="-Dhibernate.dialect=org.hibernate.dialect.PostgreSQLDialect"/>
             <jvmarg value="-Ddir.test.data=${dir.test.data}"/>
-            <jvmarg value="-Ddir.schema=${dir.schema}"/>
             <jvmarg value="-Demma.coverage.out.file=${dir.coverage}/coverage.emma"/>
             <jvmarg value="-Demma.coverage.out.merge=true"/>
             <jvmarg value="-Dbruce.nextSnapshotUnavailableSleep=1000"/>

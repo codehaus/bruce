@@ -46,6 +46,7 @@ public class ConfigurationDatabaseBuilder extends DatabaseBuilder
     private static final Logger logger = Logger.getLogger(ConfigurationDatabaseBuilder.class);
     private static final String[] configurationDDL = {
 	"create schema bruce", // If not already present
+	"grant usage on schema bruce to public",
 	"alter table bruce.NODE_CLUSTER drop constraint cluster_id_fk",
 	"alter table bruce.NODE_CLUSTER drop constraint node_id_fk",
 	"alter table bruce.YF_CLUSTER drop constraint master_node_id_fk",

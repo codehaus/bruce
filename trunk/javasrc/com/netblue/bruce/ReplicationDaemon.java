@@ -48,7 +48,6 @@ public final class ReplicationDaemon implements Runnable
     public ReplicationDaemon()
     {
         properties = new BruceProperties();
-        properties.putAll(System.getProperties());
         try
         {
             clusterFactory = ClusterFactory.getClusterFactory();

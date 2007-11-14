@@ -74,7 +74,7 @@ public abstract class DatabaseBuilder
             }
             catch (SQLException e)
             {
-                LOGGER.warn("Exception executing SQL: " + e.getLocalizedMessage());
+                LOGGER.debug("Exception executing SQL: " + e.getLocalizedMessage());
                 LOGGER.debug(e);
             }
         }
