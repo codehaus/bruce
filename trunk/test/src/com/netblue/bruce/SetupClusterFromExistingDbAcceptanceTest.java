@@ -22,20 +22,6 @@
 */
 package com.netblue.bruce;
 
-// import org.apache.commons.dbcp.BasicDataSource;
-// import org.apache.log4j.Logger;
-// import org.junit.AfterClass;
-// import org.junit.Assert;
-// import org.junit.BeforeClass;
-// import org.junit.Test;
-
-// import javax.sql.DataSource;
-// import java.sql.Connection;
-// import java.sql.ResultSet;
-// import java.sql.SQLException;
-// import java.sql.Statement;
-// import java.util.Properties;
-
 import com.netblue.bruce.admin.Version;
 import com.netblue.bruce.cluster.*;
 import org.apache.commons.dbcp.BasicDataSource;
@@ -309,22 +295,4 @@ public class SetupClusterFromExistingDbAcceptanceTest {
     private final static String CLUSTER_NAME = "Cluster Un";
     private static Cluster cl;
     private static ClusterFactory cf;
-
-
-
-//     private static final Logger LOGGER = Logger.getLogger(SetupClusterFromExistingDbAcceptanceTest.class);
-//     private static final String MASTER_DB = "bruce_master";
-//     private static final String SLAVE1_DB = "bruce_slave_1";
-//     private static final String SLAVE2_DB = "bruce_slave_2";
-//     private static final String CONFIG_URL_KEY = "config.url";
-//     private static final String MASTER_URL_KEY = "master.url";
-//     private static final String SLAVE1_URL_KEY = "slave1.url";
-//     private static final String SLAVE2_URL_KEY = "slave2.url";
-
-//     private static Properties properties;
-
-//     private static BasicDataSource masterDS;
-//     private static BasicDataSource slave1DS;
-//     private static BasicDataSource slave2DS;
-//     private static BasicDataSource configDS;
 }
