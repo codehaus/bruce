@@ -22,20 +22,6 @@
 */
 package com.netblue.bruce;
 
-// import junit.framework.JUnit4TestAdapter;
-// import org.apache.log4j.Level;
-// import org.apache.log4j.Logger;
-// import org.junit.After;
-// import org.junit.Assert;
-// import org.junit.Before;
-// import org.junit.Test;
-
-// import java.io.ByteArrayOutputStream;
-// import java.io.IOException;
-// import java.io.PrintStream;
-// import java.sql.Connection;
-// import java.sql.SQLException;
-
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.log4j.Logger;
 import org.junit.*;
