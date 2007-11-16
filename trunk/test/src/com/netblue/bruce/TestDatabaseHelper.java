@@ -51,13 +51,13 @@ public class TestDatabaseHelper {
 
 		// Make sure no connections to named database exist
 		for (int retry=3;retry>0;retry--) {
+		    System.runFinalization();
+		    System.gc();
 		    ResultSet rs = executeQueryAndLog(statement,
 						      "select count(*) from pg_stat_activity where datname = '"+
 						      dBName+"'");
 		    assertTrue("Error retreving database connection count",rs.next());
 		    if (rs.getInt(1) == 0) break;
-		    System.runFinalization();
-		    System.gc();
 		    logger.info(rs.getInt(1)+" database connections to "+dBName+" exist. Will wait and retry "+
 				retry+" more times");
 		    Thread.sleep(5000L); // 5 seconds

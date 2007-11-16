@@ -38,7 +38,7 @@ import static java.text.MessageFormat.format;
 
 /**
  * @author rklahn
- * @version $Id:$
+ * @version $Id$
  */
 public class PgExtensionTest {
     @BeforeClass public static void setupBeforeClass() 
@@ -61,7 +61,7 @@ public class PgExtensionTest {
 	//
 	mDS=createDataSource(cl.getMaster().getUri());
 	// We need at least one snapshot/transaction log table for these tests to work. 
-	LogSwitchThread lt = new LogSwitchThread(new BruceProperties(),mDS,cl.getId());
+	LogSwitchHelper lt = new LogSwitchHelper(new BruceProperties(),mDS,cl);
 	Connection c = mDS.getConnection();
 	try {
 	    Statement s = c.createStatement();

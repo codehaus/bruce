@@ -31,10 +31,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class LogSwitchThread implements Runnable
-{
+public class LogSwitchHelper {
 
-    private static final Logger logger = Logger.getLogger(LogSwitchThread.class);
+    private static final Logger logger = Logger.getLogger(LogSwitchHelper.class);
     // Properties that drive actions for this thread
     //
     // How often to create new transaction and snapshot log tables
@@ -65,62 +64,11 @@ public class LogSwitchThread implements Runnable
     private final String transactionViewName;
     private final String snapshotViewName;
     private final long threadDelay;
-
-    private boolean shutdownRequested = false;
-
-    public void run()
-    {
-        Connection conn = null;
-        try
-        {
-            conn = ds.getConnection();
-            conn.setAutoCommit(false);
-        }
-        catch (SQLException e)
-        {
-            logger.warn("SQLException in the log thread.  Cannot manage transaction log.");
-            e.printStackTrace();
-        }
-        if (conn != null)
-        {
-            while (!shutdownRequested)
-            {
-                try
-                {
-                    Statement s = conn.createStatement();
-                    newLogTable(s); // Create new log tables if needed
-                    dropLogTable(s); // Drop old log tables if needed
-                    conn.commit();
-                    s.close();
-                    logger.debug("Going to sleep for " + threadDelay + " milliseconds");
-                    Thread.sleep(threadDelay);
-                }
-                catch (SQLException e)
-                {
-                    // TODO:  Figure out what to do with this! We should clearly terminate this thread
-		    //        if SQLException is caught, but the main should probably terminate too. 
-		    //        but the answer is not clear. Magic 8 ball says: Consider something 
-		    //        better in a future release.
-		    shutdownRequested=true;
-                    logger.error("SQLException in the log thread. Shutting down thread.", e);
-                }
-                catch (InterruptedException e)
-                {
-                    logger.warn("LogSwitchThread was interrupted.", e);
-                }
-            }
-        }
-    }
-
-    public synchronized void shutdown()
-    {
-        shutdownRequested = true;
-        logger.info("Shutting down log switch thread.");
-    }
+    private long lastSwitch = 0;
 
     // Entry point for tests at a lower level than where a Cluster exists.
     // Should not be used directly by Daemon or Admin code
-    public LogSwitchThread(BruceProperties p, DataSource ds, Long id) {
+    public LogSwitchHelper(BruceProperties p, DataSource ds, Long id) {
 	this.clusterId=id;
         this.ds = ds;
         rotateFrequency = p.getIntProperty(ROTATE_KEY, ROTATE_DEFAULT);
@@ -134,9 +82,25 @@ public class LogSwitchThread implements Runnable
         threadDelay = p.getIntProperty(THREAD_ITERATION_DELAY_KEY, THREAD_ITERATION_DELAY_DEFAULT);
     }
 
-    public LogSwitchThread(BruceProperties p, DataSource ds, Cluster cl)
-    {
+    public LogSwitchHelper(BruceProperties p, DataSource ds, Cluster cl) {
 	this(p,ds,cl.getId());
+    }
+
+    public void doSwitch() throws SQLException {
+	// Is it even time to try and perform a switch
+	if ((System.currentTimeMillis() - lastSwitch) > threadDelay) {
+	    Connection c = ds.getConnection();
+	    try {
+		c.setAutoCommit(false);
+		Statement s=c.createStatement();
+		try {
+		    newLogTable(s);
+		    dropLogTable(s);
+		    c.commit();
+		} finally { s.close(); }
+	    } finally { c.close(); }
+	    lastSwitch=System.currentTimeMillis();
+	}
     }
 
     // If the rotate time has passed for the latest transaction/snapshot logs, create new tables and

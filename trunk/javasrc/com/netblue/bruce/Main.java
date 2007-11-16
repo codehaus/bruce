@@ -22,6 +22,7 @@
 */
 package com.netblue.bruce;
 
+import com.netblue.bruce.cluster.*;
 import org.apache.log4j.*;
 
 import java.io.File;
@@ -51,23 +52,12 @@ public class Main
 	    if (args[0].equals("-v") || args[0].equals("-version")) {
 		// We dont have log4j yet
 		System.out.println("$Id$");
-		System.out.println("$URL:$");
+		System.out.println("$URL$");
 		System.exit(0);
 	    }
 
-            // Be sure any log messages generated before we daemonize are sent to System.err
-            // just in case something bad happens on startup
-            Appender startupAppender = new ConsoleAppender(new SimpleLayout(), "System.err");
-
             try
             {
-                // Configure logging
-                LOGGER.addAppender(startupAppender);
-                BasicConfigurator.configure();
-                BasicConfigurator.resetConfiguration();
-                PropertyConfigurator.configure(System.getProperty("log4j.configuration"));
-                PROPERTIES.logProperties();
-
                 // Daemonize (close stdout & stderr)
                 LOGGER.info("Daemonizing...");
                 Main.daemonize();
@@ -78,20 +68,20 @@ public class Main
             {
                 LOGGER.fatal("Start up failed.", t);
             }
-            finally
-            {
-                LOGGER.removeAppender(startupAppender);
-            }
-
+ 
             // Start the main daemon process
             LOGGER.info("Starting replication...");
             startReplicationDaemon(args[0]);
 
+	    // Log switching
+	    LogSwitchHelper lsh = new LogSwitchHelper(PROPERTIES,daemon.getMasterDataSource(),daemon.getCluster());
+
             // Loop while checking for shutdown requests
-            while (!isShutdownRequested())
-            {
-                try { Thread.sleep(1000); }
-                catch (InterruptedException e) { }
+            while (!isShutdownRequested()) {
+                try { 
+		    lsh.doSwitch();
+		    Thread.sleep(1000); 
+		} catch (InterruptedException e) { }
             }
         }
         catch (Throwable throwable)

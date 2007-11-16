@@ -229,7 +229,7 @@ public class NodeBuilder
         // Now check to see if we have any data in the snapshot view.  If not, create a row
 	// First, make sure at least one snapshot/transaction log exists
 	// Make sure we have at least one snapshot/transaction log
-	LogSwitchThread lst = new LogSwitchThread(new BruceProperties(),dataSource,cluster);
+	LogSwitchHelper lst = new LogSwitchHelper(new BruceProperties(),dataSource,cluster);
 	lst.newLogTable(statement);
 	// Make sure that we have at least one snapshot, so that this DB can safely be used as the data source
 	// of other nodes.

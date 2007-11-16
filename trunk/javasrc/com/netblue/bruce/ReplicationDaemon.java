@@ -28,6 +28,8 @@ import com.netblue.bruce.cluster.ClusterInitializationException;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.log4j.Logger;
 
+import javax.sql.DataSource;
+
 /**
  * <code>ReplicationDaemon</code> is the main engine of the replication process.  It is responsible for loading up the
  * cluster configuration data, spawning threads for each of the slave databases, and initializing the snapshot cache
@@ -59,7 +61,6 @@ public final class ReplicationDaemon implements Runnable
             LOGGER.fatal("Cannot initialize Cluster configuration factory.  Nothing else to do but bail", throwable);
             throw new ClusterInitializationException("Unable to initialize ClusterFactory", throwable);
         }
-
     }
 
     /**
@@ -90,6 +91,10 @@ public final class ReplicationDaemon implements Runnable
         return slaveFactory != null ? slaveFactory.getCluster() : null;
     }
 
+    public DataSource getMasterDataSource() {
+	return (DataSource) masterDataSource;
+    }
+    
     /**
      * Starts the replication process for the currently loaded {@link com.netblue.bruce.cluster.Cluster}.  If no
      * <code>Cluster</code> has been loaded, throws {@link com.netblue.bruce.cluster.ClusterInitializationException}
@@ -100,9 +105,6 @@ public final class ReplicationDaemon implements Runnable
         {
             throw new ClusterInitializationException("Cannot run replication daemon without a valid cluster configuration and snapshot cache");
         }
-        logSwitchRunner = new LogSwitchThread(properties, masterDataSource, slaveFactory.getCluster());
-        logSwitchThread = new Thread(logSwitchRunner,"LogSwitch");
-        logSwitchThread.start();
 	generateSnapshotRunner = new GenerateSnapshotThread(properties, masterDataSource);
 	generateSnapshotThread = new Thread(generateSnapshotRunner,"GenerateSnapshot");
 	generateSnapshotThread.start();
@@ -126,12 +128,6 @@ public final class ReplicationDaemon implements Runnable
     public void shutdown()
     {
 	try {
-	    if (logSwitchThread != null) {
-                logSwitchRunner.shutdown();
-                logSwitchThread.join();
-	    }
-	} catch (InterruptedException e) { }
-	try {
 	    if (generateSnapshotThread != null) {
                 generateSnapshotRunner.shutdown();
                 generateSnapshotThread.join();
@@ -145,8 +141,6 @@ public final class ReplicationDaemon implements Runnable
 
     private ThreadGroup slaves;
     private SlaveFactory slaveFactory;
-    private Thread logSwitchThread;
-    private LogSwitchThread logSwitchRunner;
     private Thread generateSnapshotThread;
     private GenerateSnapshotThread generateSnapshotRunner;
     private final BruceProperties properties;
