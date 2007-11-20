@@ -204,12 +204,18 @@ public class SlaveRunner implements Runnable
 
     public void run()
     {
+	LogSwitchHelper lsh = new LogSwitchHelper(properties,dataSource,cluster.getId());
         while (!shutdownRequested)
         {
             if (getLastProcessedSnapshot() != null)
             {
                 try
                 {
+		    try {
+			lsh.doSwitch();
+		    } catch (SQLException e) {
+			LOGGER.warn("SQLException during log switch, continuing",e);
+		    }
                     final Snapshot nextSnapshot = getNextSnapshot();
                     if (nextSnapshot != null)
                     {

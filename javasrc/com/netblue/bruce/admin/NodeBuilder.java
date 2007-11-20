@@ -60,51 +60,25 @@ public class NodeBuilder
      * not have a schema matching the current version.  Triggers are installed on all replicated tables for every node -
      * even if they exist already.
      */
-    public void buildNodes()
-    {
-        // where we'll put the slaves
-        Set<Node> slaves = new HashSet<Node>();
+    public void buildNodes() throws IOException, SQLException {
+	HashSet<Cluster> clusters = new HashSet<Cluster>();
 
-        // first iterate through and see if one of the nodes is a master.  If so, we'll need to init it first
-        for (Node node : nodes)
-        {
-            try
-            {
-                // Figure out if this node is a master or slave
-                boolean isSlave = true;
-                final Set<Cluster> clusters = node.getCluster();
-                for (Cluster cluster : clusters)
-                {
-                    final Node master = cluster.getMaster();
-                    if (master.equals(node))
-                    {
-                        prepareMaster(cluster);
-                        isSlave = false;
-                    }
-                }
-                if (isSlave)
-                {
-                    slaves.add(node);
-                }
-            }
-            catch (Exception e)
-            {
-                LOGGER.error("Unexpected exception while preparing master node", e);
-            }
-        }
+	for (Node node : nodes) {
+	    for (Cluster cluster : node.getCluster()) {
+		clusters.add(cluster);
+	    }
+	}
 
-        // Now prepare the slaves
-        for (Node slave : slaves)
-        {
-            try
-            {
-                prepareSlave(slave);
-            }
-            catch (Exception e)
-            {
-                LOGGER.error("Unexpected exception while preparing slave node", e);
-            }
-        }
+	for (Cluster cluster : clusters) {
+	    Node master = cluster.getMaster();
+	    prepareMaster(cluster);
+	    // And only then can the slaves be prepared
+	    for (Node node : nodes) {
+		if (!master.getId().equals(node.getId())) {
+		    prepareSlave(node,cluster);
+		}
+	    }
+	}
     }
 
     private BasicDataSource prepareDatabase(final Node node) throws IOException, SQLException
@@ -117,7 +91,7 @@ public class NodeBuilder
         return nodeDataSource;
     }
 
-    private void prepareSlave(final Node slave) throws SQLException, IOException
+    private void prepareSlave(final Node slave,Cluster c) throws SQLException, IOException
     {
         DataSource dataSource = prepareDatabase(slave);
 
@@ -125,6 +99,10 @@ public class NodeBuilder
         Connection connection = dataSource.getConnection();
         ArrayList<String> tables = strategy.getTables(slave, null);
         Statement statement = connection.createStatement();
+	createTransactionLogTable(statement,c.getId().toString());
+	// Make sure we have at least one snapshot/transaction log
+	LogSwitchHelper lst = new LogSwitchHelper(new BruceProperties(),dataSource,c);
+	lst.newLogTable(statement);
         for (String table : tables)
         {
             String unqualifiedTableName = table.substring(table.lastIndexOf(".")+1);
@@ -179,63 +157,45 @@ public class NodeBuilder
     }
 
 
-    private void prepareMaster(final Cluster cluster) throws IOException, SQLException
+    private void prepareMaster(final Cluster cluster) throws IOException
     {
-	Node master = cluster.getMaster();
-        DataSource dataSource = prepareDatabase(master);
-
-        RegExReplicationStrategy strategy = new RegExReplicationStrategy(dataSource);
-        Connection connection = dataSource.getConnection();
-        ArrayList<String> tables = strategy.getTables(master, null);
-        Statement statement = connection.createStatement();
-	// Populate Master Node table with this clusters ID
-	try {
-	    statement.execute("drop table bruce.masternode cascade");
-	} catch (SQLException e) {} // OK if table does not already exist
-	statement.execute("create table bruce.masternode (cluster_id int8 not null primary key)");
-	statement.execute("insert into bruce.masternode(cluster_id) values ("+cluster.getId().toString()+")");
-	statement.execute("grant select on bruce.masternode to public");
-	// Create a currentlog table for this cluster
-	String clusterIdS = cluster.getId().toString();
-	try {
-	    statement.execute("drop table bruce.currentlog_"+clusterIdS+" cascade");
-	    statement.execute("drop sequence bruce.currentlog_"+clusterIdS+"_id_seq cascade");
-	    statement.execute("drop sequence bruce.transactionlog_"+clusterIdS+"_rowseq cascade");
-	} catch (SQLException e) {} // OK if table does not already exist
-	statement.execute("CREATE SEQUENCE bruce.currentlog_"+clusterIdS+"_id_seq "+
-			  "      INCREMENT BY 1 NO MAXVALUE NO MINVALUE START WITH 1 CACHE 1");
-	statement.execute("CREATE SEQUENCE bruce.transactionlog_"+clusterIdS+"_rowseq "+
-			  "      INCREMENT BY 1 NO MAXVALUE NO MINVALUE START WITH 1 CACHE 1");
-	statement.execute("grant all on bruce.transactionlog_"+clusterIdS+"_rowseq to public");
-	statement.execute("CREATE TABLE bruce.currentlog_"+clusterIdS+
-			  "           ( id integer "+
-			  "                DEFAULT nextval('bruce.currentlog_"+clusterIdS+"_id_seq'::regclass) "+
-			  "                NOT NULL primary key, "+
-			  "             create_time timestamp without time zone DEFAULT now() NOT NULL)");
-	statement.execute("GRANT select ON bruce.currentlog_"+clusterIdS+" TO public");
-        for (String table : tables)
-        {
-            // Trigger names can't be prefixed with a schema.  Let's get just the tableName
-            String unqualifiedTableName = table.substring(table.lastIndexOf(".")+1);
-            String txTrigger = MessageFormat.format(CREATE_TX_TRIGGER_STMT, unqualifiedTableName, table);
-            LOGGER.info(txTrigger);
-            statement.execute(txTrigger);
-
-            String snapTrigger = MessageFormat.format(CREATE_SNAP_TRIGGER_STMT, unqualifiedTableName, table);
-            LOGGER.info(snapTrigger);
-            statement.execute(snapTrigger);
-        }
-
-        // Now check to see if we have any data in the snapshot view.  If not, create a row
-	// First, make sure at least one snapshot/transaction log exists
-	// Make sure we have at least one snapshot/transaction log
-	LogSwitchHelper lst = new LogSwitchHelper(new BruceProperties(),dataSource,cluster);
-	lst.newLogTable(statement);
-	// Make sure that we have at least one snapshot, so that this DB can safely be used as the data source
-	// of other nodes.
-	statement.execute("select bruce.logsnapshot()");
-        statement.close();
-        connection.close();
+	try { // Its possible that we pass thru this method more than once for a master. Ignore SQL errors.
+	    Node master = cluster.getMaster();
+	    DataSource dataSource = prepareDatabase(master);
+	    
+	    RegExReplicationStrategy strategy = new RegExReplicationStrategy(dataSource);
+	    Connection connection = dataSource.getConnection();
+	    ArrayList<String> tables = strategy.getTables(master, null);
+	    Statement statement = connection.createStatement();
+	    // Populate Master Node table with this clusters ID
+	    String clusterIdS = cluster.getId().toString();
+	    createMasterNodeTable(statement,clusterIdS);
+	    // Create a currentlog table for this cluster
+	    createTransactionLogTable(statement,clusterIdS);
+	    for (String table : tables)
+		{
+		    // Trigger names can't be prefixed with a schema.  Let's get just the tableName
+		    String unqualifiedTableName = table.substring(table.lastIndexOf(".")+1);
+		    String txTrigger = MessageFormat.format(CREATE_TX_TRIGGER_STMT, unqualifiedTableName, table);
+		    LOGGER.info(txTrigger);
+		    statement.execute(txTrigger);
+		    
+		    String snapTrigger = MessageFormat.format(CREATE_SNAP_TRIGGER_STMT, unqualifiedTableName, table);
+		    LOGGER.info(snapTrigger);
+		    statement.execute(snapTrigger);
+		}
+	    
+	    // Now check to see if we have any data in the snapshot view.  If not, create a row
+	    // First, make sure at least one snapshot/transaction log exists
+	    // Make sure we have at least one snapshot/transaction log
+	    LogSwitchHelper lst = new LogSwitchHelper(new BruceProperties(),dataSource,cluster);
+	    lst.newLogTable(statement);
+	    // Make sure that we have at least one snapshot, so that this DB can safely be used as the data source
+	    // of other nodes.
+	    statement.execute("select bruce.logsnapshot()");
+	    statement.close();
+	    connection.close();
+	} catch (SQLException e) {}
     }
 
     private Snapshot selectLastSnapshot(final Statement statement) throws SQLException
@@ -262,6 +222,29 @@ public class NodeBuilder
         return snapshot;
     }
 
+    private void createMasterNodeTable(Statement s,String clusterId) throws SQLException {
+ 	try {
+	s.execute("create table bruce.masternode (cluster_id int8 not null primary key)");
+	s.execute("insert into bruce.masternode(cluster_id) values ("+clusterId+")");
+	s.execute("grant select on bruce.masternode to public");
+ 	} catch (SQLException e) {} // OK if already exists
+    }
+
+    private void createTransactionLogTable(Statement s,String clusterId) throws SQLException {
+ 	try {
+	s.execute("CREATE SEQUENCE bruce.currentlog_"+clusterId+"_id_seq "+
+		  "      INCREMENT BY 1 NO MAXVALUE NO MINVALUE START WITH 1 CACHE 1");
+	s.execute("CREATE SEQUENCE bruce.transactionlog_"+clusterId+"_rowseq "+
+		  "      INCREMENT BY 1 NO MAXVALUE NO MINVALUE START WITH 1 CACHE 1");
+	s.execute("grant all on bruce.transactionlog_"+clusterId+"_rowseq to public");
+	s.execute("CREATE TABLE bruce.currentlog_"+clusterId+
+		  "           ( id integer "+
+		  "                DEFAULT nextval('bruce.currentlog_"+clusterId+"_id_seq'::regclass) "+
+		  "                NOT NULL primary key, "+
+		  "             create_time timestamp without time zone DEFAULT now() NOT NULL)");
+	s.execute("GRANT select ON bruce.currentlog_"+clusterId+" TO public");
+ 	} catch (SQLException e) {} // OK if table already exists
+    }
 
     private final Set<Node> nodes;
     private final ReplicationDatabaseBuilder builder;
