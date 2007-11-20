@@ -50,9 +50,8 @@ public class Main
             }
 
 	    if (args[0].equals("-v") || args[0].equals("-version")) {
-		// We dont have log4j yet
-		System.out.println("$Id$");
-		System.out.println("$URL$");
+		LOGGER.info("$Id$");
+		LOGGER.info("$URL$");
 		System.exit(0);
 	    }
 
@@ -63,6 +62,7 @@ public class Main
                 Main.daemonize();
                 // Make sure we clean up properly when we're killed
                 Main.addShutdownHook();
+		Thread.currentThread().setName("master"); 
             }
             catch(Throwable t)
             {
