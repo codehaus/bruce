@@ -66,19 +66,8 @@ public class SlaveRunnerTest {
 	}
     }
 
-    @Test public void testLastSnapshotAtStartup() {
+    @Test public void testProcessSnapshot() throws SQLException, InstantiationException {
 	SlaveRunner sr = new SlaveRunner(masterDataSource,cluster,node);
-	Snapshot lps = sr.getLastProcessedSnapshot();
-	assertNotNull("Last processed snapshot should not be null",lps);
-	Snapshot mns = sr.getNextSnapshot();
-	// As we have applied no snapshots to the master database, mns should be null
-	assertNull("Next snapshot should be null",mns);
-    }
-    
-    @Test public void testProcessSnapshot() throws SQLException {
-	SlaveRunner sr = new SlaveRunner(masterDataSource,cluster,node);
-	Snapshot lps = sr.getLastProcessedSnapshot();
-	assertNotNull("Last processed snapshot should not be null",lps);
 	Connection c = masterDataSource.getConnection();
 	try { // Make sure connection gets closed
 	    Statement s = c.createStatement();
@@ -93,19 +82,9 @@ public class SlaveRunnerTest {
 	Snapshot mns = sr.getNextSnapshot();
 	// As we have applied a snapshot to the master, mns should not be null
 	assertNotNull("Next snapshot should not be null",mns);
-	assertTrue("Next snapshot should be greater than last processed snapshot",mns.compareTo(lps)>0);
 	
 	// This is what we are really testing. 
 	sr.processSnapshot(mns);
-
-	// Check that the class returns the new snapshot
-	assertEquals("processSnapshot did not update itself",sr.getLastProcessedSnapshot(),mns);
-
-	// Check to see if the Slave's slavesnapshotstatus was actually updated in the database.
-	// We are presuming that SlaveRunner.queryForLastProcessedSnapshot() works as advertised.
-	// But if its not, we are likely to fail here, because we are unlikely to get back the 
-	// same snapshot from SlaveRunner.queryForLastProcessedSnapshot() as we have in mns.
-	assertEquals("processSnapshot did not update status table", sr.queryForLastProcessedSnapshot(),mns);
     }
     
     private final static String CLUSTER_NAME = "Cluster Un";
