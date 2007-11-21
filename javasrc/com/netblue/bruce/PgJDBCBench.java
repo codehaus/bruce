@@ -43,8 +43,6 @@
 package com.netblue.bruce;
 
 import org.apache.commons.dbcp.BasicDataSource;
-import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -326,7 +324,6 @@ public class PgJDBCBench
     {
         PgJDBCBench bench = new PgJDBCBench();
         CmdLineParser parser = new CmdLineParser(bench);
-        logger.setLevel(Level.INFO);
         try
         {
             parser.parseArgument(args);
@@ -439,12 +436,6 @@ public class PgJDBCBench
             "Number of tellers used = 10*threads*scale,\n" +
             "Number of accounts used = 10,000*threads*scale")
     private int numScale = 1;
-
-    static
-    {
-        BasicConfigurator.resetConfiguration();
-        BasicConfigurator.configure();
-    }
 
     private final static String user = System.getProperty("user.name");
     private final static int baseBranches = 1;
