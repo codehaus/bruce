@@ -25,7 +25,6 @@ package com.netblue.bruce;
 import com.netblue.bruce.cluster.Cluster;
 import com.netblue.bruce.cluster.Node;
 import org.apache.commons.dbcp.BasicDataSource;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import java.sql.SQLException;
@@ -52,7 +51,6 @@ public class SlaveFactory implements ThreadFactory
             throw new IllegalArgumentException("Cluster cannot be null");
         }
         this.cluster = cluster;
-        LOGGER.setLevel(Level.INFO);
         threadGroup = new ThreadGroup(this.cluster.getName());
         threadGroup.setDaemon(true);
 
@@ -79,15 +77,24 @@ public class SlaveFactory implements ThreadFactory
      */
     public ThreadGroup spawnSlaves()
     {
+	LOGGER.debug("spawnSlaves()");
         final Set<Node> nodes = cluster.getSlaves();
         for (Node node : nodes)
         {
-            final SlaveRunner slaveRunner = new SlaveRunner(masterDataSource, cluster, node);
-            Thread thread = newThread(slaveRunner);
-            thread.setName(node.getName());
-            LOGGER.info("[" + threadGroup.getName() + "]: spawning slave thread for node: " + node.getName());
-            thread.start();
-            threadMap.put(thread, slaveRunner);
+	    LOGGER.debug(node.toString());
+	    try {
+		final SlaveRunner slaveRunner = new SlaveRunner(masterDataSource, cluster, node);
+		LOGGER.debug(slaveRunner.toString());
+		Thread thread = newThread(slaveRunner);
+		thread.setName(node.getName());
+		LOGGER.info("[" + threadGroup.getName() + "]: spawning slave thread for node: " + node.getName());
+		thread.start();
+		threadMap.put(thread, slaveRunner);
+	    } catch (SQLException e) {
+		LOGGER.warn("SQLException while trying to spawn a node, continuing",e);
+	    } catch (InstantiationException e) {
+		LOGGER.warn("InstantiationException while trying to spawn a node, continuing",e);
+	    }
         }
         return threadGroup;
     }
