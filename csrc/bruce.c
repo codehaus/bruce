@@ -350,15 +350,13 @@ Datum logSnapshot(PG_FUNCTION_ARGS) {
     if (SPI_connect()<0)
       ereport(ERROR,(errmsg_internal("SPI_connect failed in logSnapshot()")));
     
-    ox=DirectFunctionCall1(textin,PointerGetDatum(""));
+    ox=DirectFunctionCall1(textin,DirectFunctionCall1(xidout,currentXid));
     
     /* Build a comma separated list of outstanding transaction as a text datum */
     for (xcnt=0;xcnt<SerializableSnapshot->xcnt;xcnt++) {
-      /* If not the first transation in the list, add the field seporator */
-      if (xcnt!=0) 
-	ox=DirectFunctionCall2(textcat,
-			       ox,
-			       DirectFunctionCall1(textin,PointerGetDatum(",")));
+      ox=DirectFunctionCall2(textcat,
+			     ox,
+			     DirectFunctionCall1(textin,PointerGetDatum(",")));
       ox=DirectFunctionCall2(textcat,
 			     ox,
 			     DirectFunctionCall1(textin,DirectFunctionCall1(xidout,SerializableSnapshot->xip[xcnt])));
@@ -366,20 +364,17 @@ Datum logSnapshot(PG_FUNCTION_ARGS) {
     
     /* build out the insert statement */
     sprintf(query,
-	    "insert into bruce.snapshotlog_%s_%s (current_xaction,min_xaction,max_xaction,outstanding_xactions) values ($1,$2,$3,$4);",
+	    "insert into bruce.snapshotlog_%s_%s (min_xaction,max_xaction,outstanding_xactions) values ($1,$2,$3);",
 	    currentCluster(),currentLogID(currentCluster()));
     
     plan_types[0]=INT8OID;
-    plan_values[0]=DirectFunctionCall1(int8in,DirectFunctionCall1(xidout,TransactionIdGetDatum(currentXid)));
-
+    plan_values[0]=DirectFunctionCall1(int8in,DirectFunctionCall1(xidout,
+								  TransactionIdGetDatum(SerializableSnapshot->xmin)));
     plan_types[1]=INT8OID;
     plan_values[1]=DirectFunctionCall1(int8in,DirectFunctionCall1(xidout,
-								  TransactionIdGetDatum(SerializableSnapshot->xmin)));
-    plan_types[2]=INT8OID;
-    plan_values[2]=DirectFunctionCall1(int8in,DirectFunctionCall1(xidout,
 								  TransactionIdGetDatum(SerializableSnapshot->xmax)));
-    plan_types[3]=TEXTOID;
-    plan_values[3]=ox;
+    plan_types[2]=TEXTOID;
+    plan_values[2]=ox;
     
     plan=SPI_prepare(query,4,plan_types);
     SPI_execp(plan,plan_values,NULL,0);

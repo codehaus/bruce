@@ -112,9 +112,9 @@ public class Version
     private Version(){}
 
     private static final int MAJOR_VERSION = 1;
-    private static final int MINOR_VERSION = 0;
+    private static final int MINOR_VERSION = 5;
     private static final int PATCH_VERSION = 0;
-    private static final String NAME = "Replication 1.0 release";
+    private static final String NAME = "Replication 1.5 release";
     static final String VERSION_QUERY = "select * from bruce.replication_version";
     private static final Logger LOGGER = Logger.getLogger(Version.class);
     private static final String MAJOR_COLUMN = "MAJOR";

@@ -44,7 +44,7 @@ public class SnapshotTest {
 
     @Test public void testConstructors() {
         // A snapshot that should be equal, but using a different constructor
-        Snapshot s1a = new Snapshot(new TransactionID(4),
+        Snapshot s1a = new Snapshot(new Long(4L),
 				    new TransactionID(4),
                                     new TransactionID(5),
                                     new TreeSet<TransactionID>());
@@ -52,32 +52,32 @@ public class SnapshotTest {
     }
 
     @Test public void testTransactionIDLT() {
-        Snapshot s5 = new Snapshot(new TransactionID(10),new TransactionID(10), new TransactionID(20), "11,12,13");
+        Snapshot s5 = new Snapshot(new Long(10L),new TransactionID(10), new TransactionID(20), "11,12,13");
         assertTrue(s5.transactionIDLT(new TransactionID(4))); // Less than min
-        assertFalse(s5.transactionIDLT(new TransactionID(10))); // Equal to min, but current XID
+        assertTrue(s5.transactionIDLT(new TransactionID(10))); // Equal to min
         assertFalse(s5.transactionIDLT(new TransactionID(20))); // Equal to max
         assertFalse(s5.transactionIDLT(new TransactionID(21))); // Greater than max
         assertFalse(s5.transactionIDLT(new TransactionID(11))); // Between, on list
         assertTrue(s5.transactionIDLT(new TransactionID(14))); // Between, not on list
-        s5 = new Snapshot(new TransactionID(10),new TransactionID(10), new TransactionID(20), "10,20");
+        s5 = new Snapshot(new Long(10L),new TransactionID(10), new TransactionID(20), "10,20");
         assertFalse(s5.transactionIDLT(new TransactionID(10))); // equal to min, on list
         assertFalse(s5.transactionIDLT(new TransactionID(20))); // equal to max, on list
     }
 
     @Test public void testTransactionIDGE() {
-        Snapshot s5 = new Snapshot(new TransactionID(10),new TransactionID(10), new TransactionID(20), "11,12,13");
+        Snapshot s5 = new Snapshot(new Long(10L),new TransactionID(10), new TransactionID(20), "11,12,13");
         assertFalse(s5.transactionIDGE(new TransactionID(4))); // Less than min
-        assertTrue(s5.transactionIDGE(new TransactionID(10))); // Equal to min, but current XID
+        assertFalse(s5.transactionIDGE(new TransactionID(10))); // Equal to min
         assertTrue(s5.transactionIDGE(new TransactionID(20))); // Equal to max
         assertTrue(s5.transactionIDGE(new TransactionID(21))); // Greater than max
         assertTrue(s5.transactionIDGE(new TransactionID(11))); // Between, on list
         assertFalse(s5.transactionIDGE(new TransactionID(14))); // Between, not on list
-        s5 = new Snapshot(new TransactionID(10),new TransactionID(10),new TransactionID(20), "10,20");
+        s5 = new Snapshot(new Long(10L),new TransactionID(10),new TransactionID(20), "10,20");
         assertTrue(s5.transactionIDGE(new TransactionID(10))); // equal to min, on list
         assertTrue(s5.transactionIDGE(new TransactionID(20))); // equal to max, on list
     }
 
     private static final Logger logger = Logger.getLogger(SnapshotTest.class.getName());
-    private final Snapshot s1 = new Snapshot(new TransactionID(4), new TransactionID(4), new TransactionID(5), "");
-    private final Snapshot s2 = new Snapshot(new TransactionID(6), new TransactionID(6), new TransactionID(7), "");
+    private final Snapshot s1 = new Snapshot(new Long(4L), new TransactionID(4), new TransactionID(5), "");
+    private final Snapshot s2 = new Snapshot(new Long(6L), new TransactionID(6), new TransactionID(7), "");
 }

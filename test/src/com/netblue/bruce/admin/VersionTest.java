@@ -45,9 +45,9 @@ public class VersionTest {
         String name = getVersionName();
 	
         assertEquals("Unexpected major version number", 1, major);
-        assertEquals("Unexpected minor version number", 0, minor);
+        assertEquals("Unexpected minor version number", 5, minor);
         assertEquals("Unexpected patch version number", 0, patch);
-        assertEquals("Unexpected patch version number", "Replication 1.0 release", name);
+        assertEquals("Unexpected patch version number", "Replication 1.5 release", name);
     }
 
     @Test public void testIsSameVersion() throws SQLException,InterruptedException {
@@ -62,7 +62,7 @@ public class VersionTest {
 	    });
 	BasicDataSource bds = createDataSource(buildUrl("bruce"));
         assertTrue("Schema and code version conflict", isSameVersion(bds));
-        assertTrue("Schema and code version conflict", isSameVersion(1, 0, 0, "Replication 1.0 release"));
+        assertTrue("Schema and code version conflict", isSameVersion(1, 5, 0, "Replication 1.5 release"));
 	bds.close();
     }
 

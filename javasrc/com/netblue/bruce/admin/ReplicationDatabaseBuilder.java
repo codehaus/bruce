@@ -49,7 +49,7 @@ public class ReplicationDatabaseBuilder extends DatabaseBuilder
 	"             minor int, "+
 	"             patch int, "+
 	"             name character(64))",
-	"INSERT INTO bruce.replication_version VALUES (1, 0, 0, 'Replication 1.0 release')",
+	"INSERT INTO bruce.replication_version VALUES (1, 5, 0, 'Replication 1.5 release')",
 	"CREATE FUNCTION bruce.applylogtransaction(text, text, text) RETURNS boolean "+
 	"             AS 'bruce.so', 'applyLogTransaction' LANGUAGE c",
 	"CREATE FUNCTION bruce.daemonmode() RETURNS integer "+
@@ -93,7 +93,7 @@ public class ReplicationDatabaseBuilder extends DatabaseBuilder
 	"CREATE TABLE bruce.slavesnapshotstatus "+
 	"           ( clusterid bigint NOT NULL primary key, "+
 	"             slave_xaction bigint NOT NULL, "+
-	"             master_current_xaction bigint NOT NULL, "+
+	"             master_id bigint NOT NULL, "+
 	"             master_min_xaction bigint NOT NULL, "+
 	"             master_max_xaction bigint NOT NULL, "+
 	"             master_outstanding_xactions text, "+
