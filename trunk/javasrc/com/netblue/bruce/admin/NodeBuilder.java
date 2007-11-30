@@ -149,7 +149,7 @@ public class NodeBuilder
 
     private void updateLastSnapshotForSlave(final Cluster cluster, final Snapshot lastSnapshot, final Statement statement) throws SQLException
     {
-        String updateStatus = MessageFormat.format(UPDATE_STATUS_STATEMENT, lastSnapshot.getCurrentXid().getLong(),
+        String updateStatus = MessageFormat.format(UPDATE_STATUS_STATEMENT, lastSnapshot.getId(),
                                                    lastSnapshot.getMinXid().getLong(), lastSnapshot.getMaxXid().getLong(),
                                                    cluster.getId());
         LOGGER.info(updateStatus);
@@ -210,13 +210,13 @@ public class NodeBuilder
 	} 
 	// Then we can build the query to get the snapshot
         resultSet = statement.executeQuery("select * from bruce.snapshotlog_"+clusterId.toString()+
-					   " order by current_xaction desc limit 1");
+					   " order by id desc limit 1");
         if (resultSet.next())
         {
-            snapshot = new Snapshot(new TransactionID(resultSet.getLong("current_xaction")),
-                                             new TransactionID(resultSet.getLong("min_xaction")),
-                                             new TransactionID(resultSet.getLong("max_xaction")),
-                                             resultSet.getString("outstanding_xactions"));
+            snapshot = new Snapshot(resultSet.getLong("id"),
+				    new TransactionID(resultSet.getLong("min_xaction")),
+				    new TransactionID(resultSet.getLong("max_xaction")),
+				    resultSet.getString("outstanding_xactions"));
         }
         resultSet.close();
         return snapshot;
@@ -237,6 +237,9 @@ public class NodeBuilder
 	s.execute("CREATE SEQUENCE bruce.transactionlog_"+clusterId+"_rowseq "+
 		  "      INCREMENT BY 1 NO MAXVALUE NO MINVALUE START WITH 1 CACHE 1");
 	s.execute("grant all on bruce.transactionlog_"+clusterId+"_rowseq to public");
+	s.execute("create sequence bruce.snapshotlog_"+clusterId+"_idseq "+
+		  "      INCREMENT BY 1 NO MAXVALUE NO MINVALUE START WITH 1 CACHE 1");
+	s.execute("grant all on bruce.snapshotlog_"+clusterId+"_idseq to public");
 	s.execute("CREATE TABLE bruce.currentlog_"+clusterId+
 		  "           ( id integer "+
 		  "                DEFAULT nextval('bruce.currentlog_"+clusterId+"_id_seq'::regclass) "+
@@ -253,5 +256,5 @@ public class NodeBuilder
     private static final String CREATE_TX_TRIGGER_STMT = "CREATE TRIGGER {0}_tx AFTER INSERT OR DELETE OR UPDATE ON {1} FOR EACH ROW EXECUTE PROCEDURE logtransactiontrigger()";
     private static final String CREATE_SNAP_TRIGGER_STMT = "CREATE TRIGGER {0}_sn BEFORE INSERT OR DELETE OR UPDATE ON {1} FOR EACH STATEMENT EXECUTE PROCEDURE logsnapshottrigger()";
     private static final String DENY_ACCESS_TRIGGER_STMT = "CREATE TRIGGER {0}_deny BEFORE INSERT OR DELETE OR UPDATE ON {1} FOR EACH ROW EXECUTE PROCEDURE denyaccesstrigger()";
-    private static final String UPDATE_STATUS_STATEMENT = "insert into bruce.slavesnapshotstatus (slave_xaction, master_current_xaction, master_min_xaction, master_max_xaction, update_time, clusterid) values (1, {0, number, #}, {1, number, #}, {2, number, #}, now(), {3, number, #})";
+    private static final String UPDATE_STATUS_STATEMENT = "insert into bruce.slavesnapshotstatus (slave_xaction, master_id, master_min_xaction, master_max_xaction, update_time, clusterid) values (1, {0, number, #}, {1, number, #}, {2, number, #}, now(), {3, number, #})";
 }

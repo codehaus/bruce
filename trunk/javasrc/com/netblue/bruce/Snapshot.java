@@ -46,43 +46,27 @@ public class Snapshot implements Comparable
 {
     private static final Logger logger = Logger.getLogger(Snapshot.class.getName());
 
-    /**
-     * @serial <code>TransactionID</code> at the time the snapshot was taken.
-     */
-    private final TransactionID currentXid;
-
-    /**
-     * @serial minimum transaction ID at the point in time the snapshot represents
-     */
+    private final Long id;
     private final TransactionID minXid;
-    /**
-     * @serial maximum transaction ID at the point in time the snapshot represents
-     * maxXid will be unique within a replication cluster, and can be used to compare
-     * snapshot objects
-     */
     private final TransactionID maxXid;
-    /**
-     * @serial transaction ID in progress at the point in time the snapshot represents
-     */
     private final SortedSet<TransactionID> inProgressXids;
 
     /**
-     * @param currentTID current <code>TransactionID</code> when the snapshot was taken
+     * @param id snapshot id of this snapshot
      * @param minTID minimum transaction ID at the point in time the snapshot represents
      * @param maxTID maximum transaction ID at the point in time the snapshot represents
      * @param inFlightTIDs transaction ID in progress at the point in time the snapshot represents. Comma seperated.
      * @throws  IllegalArgumentException if the maximum TransactionID is less than the Minimum
      */
-    public Snapshot(TransactionID currentTID, 
+    public Snapshot(Long id, 
 		    TransactionID minTID, 
 		    TransactionID maxTID, 
 		    SortedSet<TransactionID> inFlightTIDs)
     {
-	this.currentXid = currentTID;
+	this.id = id;
         this.minXid = minTID;
         this.maxXid = maxTID;
         this.inProgressXids = inFlightTIDs;
-	this.inProgressXids.add(this.currentXid);
         if (this.maxXid.compareTo(this.minXid) != 1)
         {
             throw new IllegalArgumentException("Max TransactionID must be greater than Min TransactionID");
@@ -95,9 +79,9 @@ public class Snapshot implements Comparable
       * @param inFlightTIDs transaction ID in progress at the point in time the snapshot represents. Comma seperated.
       * @throws  IllegalArgumentException if the maximum TransactionID is less than the Minimum
       */
-    public Snapshot(TransactionID currentTID, TransactionID minTID, TransactionID maxTID, String inFlightTIDs)
+    public Snapshot(Long id, TransactionID minTID, TransactionID maxTID, String inFlightTIDs)
     {
-        this(currentTID,minTID,maxTID,new TreeSet<TransactionID>());
+        this(id,minTID,maxTID,new TreeSet<TransactionID>());
         if (inFlightTIDs != null)
         {
             String[] tidSA = inFlightTIDs.split(",");
@@ -128,7 +112,7 @@ public class Snapshot implements Comparable
     public int compareTo(Object otherObject)
     {
         Snapshot otherSnapshot = (Snapshot) otherObject;
-        return currentXid.compareTo(otherSnapshot.currentXid);
+        return id.compareTo(otherSnapshot.getId());
     }
 
     /**
@@ -147,14 +131,14 @@ public class Snapshot implements Comparable
         catch (ClassCastException e) {
             return false;
         }
-        return currentXid.equals(otherSnapshot.currentXid);
+        return id.equals(otherSnapshot.getId());
     }
 
     /**
-     * @return the <code>TransactionID</code> that this Snapshot was taken under
+     * @return the id for this snapshot
      */
-    public TransactionID getCurrentXid() {
-	return currentXid;
+    public Long getId() {
+	return id;
     }
 
     /**
@@ -223,7 +207,7 @@ public class Snapshot implements Comparable
     @Override
     public String toString()
     {
-        return "{" + "currentXID=" + currentXid+ ",minXid=" + minXid + ",maxXid=" + maxXid + 
+        return "{" + "id=" + id + ",minXid=" + minXid + ",maxXid=" + maxXid + 
 	    ",inProgressXids=" + inProgressXids + "}";
     }
 }

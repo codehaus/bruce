@@ -68,7 +68,7 @@ public class SlaveRunner implements Runnable {
 	    if (rs.next()) {
 		logger.debug("got last snapshot");
 		this.lastProcessedSnapshot = 
-		    new Snapshot(new TransactionID(rs.getLong("master_current_xaction")),
+		    new Snapshot(rs.getLong("master_id"),
 				 new TransactionID(rs.getLong("master_min_xaction")),
 				 new TransactionID(rs.getLong("master_max_xaction")),
 				 rs.getString("master_outstanding_xactions"));
@@ -129,48 +129,14 @@ public class SlaveRunner implements Runnable {
     public Snapshot getNextSnapshot() {
         logger.trace("Getting next snapshot");
 	Snapshot retVal = null;
-	long nextNormalXID = lastProcessedSnapshot.getCurrentXid().nextNormal().getLong();
-	long lastNormalXID = lastProcessedSnapshot.getCurrentXid().lastNormal().getLong();
-	logger.trace("processedSnapshot:"+lastProcessedSnapshot.getCurrentXid()+
-		     " nextNormalXID:"+nextNormalXID+" lastNormalXID:"+lastNormalXID);
-	// We have to determine possible values for the next XID. There is a detailed 
-	// discussion around the nature of PostgreSQL transaction IDs in 
-	// TransactionID.java, but the short version is this:
-	// TransactionIDs are 32-bit modulo-31 numbers, with 2^31st TransactionIDs 
-	// greater than, and 2^31 TransactionIDs less than any TransactionID. 
-	// Except: Some TransactionIDs are special, and for the purpose of this 
-	// discussion, can be considered always less than our TransactionID
 	try {
 	    Connection c = masterDataSource.getConnection();
 	    try { // Make sure the connection we just got gets closed
-		PreparedStatement ps;
-		if (nextNormalXID < lastNormalXID) {
-		    // Two cases here. One, where the nextNormalID is less than lastNormalXID, and,
-		    // thus, a simple less than or equals test can be used
-		    logger.trace("simple case");
-		    ps = c.prepareStatement(format(nextSnapshotSimpleQuery,cluster.getId().toString()));
-		    ps.setLong(1, TransactionID.INVALID);
-		    ps.setLong(2, TransactionID.BOOTSTRAP);
-		    ps.setLong(3, TransactionID.FROZEN);
-		    ps.setLong(4, nextNormalXID);
-		    ps.setLong(5, lastNormalXID);
-		} else {
-		    // Second case is where nextNormalID is greater than lastNormalXID. This occurs
-		    // when the lastNormalXID has wrapped around 2^32. The test here is a little more
-		    // complex, we are looking for snapshots either >=nextNormalXID or <=lastNormalXID
-		    logger.trace("wraparound case");
-		    ps = c.prepareStatement(format(nextSnapshotWraparoundQuery,cluster.getId().toString()));
-		    ps.setLong(1, TransactionID.INVALID);
-		    ps.setLong(2, TransactionID.BOOTSTRAP);
-		    ps.setLong(3, TransactionID.FROZEN);
-		    ps.setLong(4, nextNormalXID);
-		    ps.setLong(5, TransactionID.MAXNORMAL);
-		    ps.setLong(6, TransactionID.FIRSTNORMAL);
-		    ps.setLong(7, lastNormalXID);
-		}
+		PreparedStatement ps = c.prepareStatement(format(nextSnapshotQuery,cluster.getId().toString()));
+		ps.setLong(1,lastProcessedSnapshot.getId());
 		ResultSet rs = ps.executeQuery();
 		if (rs.next()) {
-		    retVal = new Snapshot(new TransactionID(rs.getLong("current_xaction")),
+		    retVal = new Snapshot(rs.getLong("id"),
 					  new TransactionID(rs.getLong("min_xaction")),
 					  new TransactionID(rs.getLong("max_xaction")),
 					  rs.getString("outstanding_xactions"));
@@ -261,12 +227,19 @@ public class SlaveRunner implements Runnable {
 	    ResultSet slaveRS = slaveS.executeQuery(format(determineLatestLogQuery,clusterID));
 	    if (slaveRS.next()) {
 		String logID = slaveRS.getString("id");
-		PreparedStatement ps = slaveC.prepareStatement(format(populateSlaveSnapshotLogQuery,clusterID,logID));
-		ps.setLong(1,s.getCurrentXid().getLong());
-		ps.setLong(2,s.getMinXid().getLong());
-		ps.setLong(3,s.getMaxXid().getLong());
-		ps.setString(4,s.getInFlight());
-		ps.execute();
+		PreparedStatement ps = masterC.prepareStatement(format(getMasterSnapshotLogQuery,clusterID));
+		ps.setLong(1,lastProcessedSnapshot.getId());
+		ps.setLong(2,s.getId());
+		ResultSet snapshotsRS = ps.executeQuery();
+		while (snapshotsRS.next()) {
+		    PreparedStatement popSlavePS = 
+			slaveC.prepareStatement(format(populateSlaveSnapshotLogQuery,clusterID,logID));
+		    popSlavePS.setLong(1,snapshotsRS.getLong("id"));
+		    popSlavePS.setLong(2,snapshotsRS.getLong("min_xaction"));
+		    popSlavePS.setLong(3,snapshotsRS.getLong("max_xaction"));
+		    popSlavePS.setString(4,snapshotsRS.getString("outstanding_xactions"));
+		    popSlavePS.execute();
+		}
 		slaveS.execute(format(populateSlaveTransactonLogQuery,clusterID,logID));
 	    } else {
 		logger.error("unable to determine current log number. Continuing anyways.");
@@ -287,7 +260,7 @@ public class SlaveRunner implements Runnable {
     private void updateSnapshotStatus(Connection c, Snapshot s) throws SQLException {
 	PreparedStatement ps = c.prepareStatement(updateLastSnapshotQuery);
         ps.setLong(1, getCurrentTransactionId(c));
-        ps.setLong(2, new Long(s.getCurrentXid().toString()));
+        ps.setLong(2, s.getId());
         ps.setLong(3, new Long(s.getMinXid().toString()));
         ps.setLong(4, new Long(s.getMaxXid().toString()));
         ps.setString(5, s.getInFlight());
@@ -339,22 +312,13 @@ public class SlaveRunner implements Runnable {
     private static final String selectLastSnapshotQuery =
 	"select * from bruce.slavesnapshotstatus where clusterid = ?";
     // Input for MessageFormat.format()
-    private static final String nextSnapshotSimpleQuery =
+    private static final String nextSnapshotQuery =
 	"select * from bruce.snapshotlog_{0} "+
-	" where current_xaction not in (?,?,?) "+
-	"   and current_xaction >= ? "+
-	"   and current_xaction <= ? "+
-	" order by current_xaction desc limit 1";
-    // Input for MessageFormat.format()
-    private static final String nextSnapshotWraparoundQuery =
-	"select * from bruce.snapshotlog_{0} "+
-	" where current_xaction not in (?,?,?) "+
-	"   and ((current_xaction >= ? and current_xaction <= ?) "+
-	"     or (current_xaction >= ? and current_xaction <= ?)) "+
-	" order by current_xaction desc limit 1";
+	" where id > ? "+
+	" order by id desc limit 1";
     private static final String updateLastSnapshotQuery =
 	"update bruce.slavesnapshotstatus "+
-	"   set slave_xaction = ?,  master_current_xaction = ?, master_min_xaction = ?, master_max_xaction = ?, "+
+	"   set slave_xaction = ?,  master_id = ?, master_min_xaction = ?, master_max_xaction = ?, "+
 	"       master_outstanding_xactions = ?, update_time = now() "+
 	" where clusterid = ?";
     private static final String slaveTransactionIdQuery =
@@ -372,8 +336,10 @@ public class SlaveRunner implements Runnable {
 	"select * from bruce.transactionlog_{0} where xaction >= ? and xaction < ?";
     private static final String determineLatestLogQuery = 
 	"select max(id) as id from bruce.currentlog_{0}";
+    private static final String getMasterSnapshotLogQuery =
+	"select * from bruce.snapshotlog_{0} where id > ? and id <= ?";
     private static final String populateSlaveSnapshotLogQuery =
-	"insert into bruce.snapshotlog_{0}_{1} (current_xaction,min_xaction,max_xaction,outstanding_xactions) "+
+	"insert into bruce.snapshotlog_{0}_{1} (id,min_xaction,max_xaction,outstanding_xactions) "+
 	"values (?,?,?,?)";
     private static final String populateSlaveTransactonLogQuery =
 	"insert into bruce.transactionlog_{0}_{1} (rowid,xaction,cmdtype,tabname,info) "+

@@ -138,7 +138,7 @@ public class LogSwitchHelper {
 	    s.executeUpdate("grant all on "+newTransactionTableName+" to public");
 	    // newSnapshotTableName already starts with bruce.
             s.executeUpdate("create table " + newSnapshotTableName + " (" +
-			    " current_xaction bigint primary key," +
+			    " id bigint primary key default nextval('"+ snapshotViewName + "_idseq'::regclass),"+
 			    " min_xaction bigint NOT NULL," +
 			    " max_xaction bigint NOT NULL," +
 			    " outstanding_xactions text, "+

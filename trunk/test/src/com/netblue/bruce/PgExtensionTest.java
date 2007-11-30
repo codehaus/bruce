@@ -73,13 +73,12 @@ public class PgExtensionTest {
 		executeAndLog(s,"select bruce.logsnapshot()");
 		executeAndLog(s,
 			      "insert into bruce.slavesnapshotstatus "+
-			      "(clusterid,slave_xaction,master_current_xaction,master_min_xaction,master_max_xaction,"+
+			      "(clusterid,slave_xaction,master_id,master_min_xaction,master_max_xaction,"+
 			      " master_outstanding_xactions,update_time) "+
-			      "select "+cl.getId()+",1,current_xaction,min_xaction,max_xaction,outstanding_xactions,"+
+			      "select "+cl.getId()+",1,id,min_xaction,max_xaction,outstanding_xactions,"+
 			      "       now() "+
 			      "  from snapshotlog_"+cl.getId()+
-			      " where current_xaction = "+
-			      "         (select max(current_xaction) from snapshotlog_"+cl.getId()+")");
+			      " where id = (select max(id) from snapshotlog_"+cl.getId()+")");
 	    } finally {
 		s.close();
 	    }
@@ -193,16 +192,15 @@ public class PgExtensionTest {
  		c.commit();
  		ResultSet rs = executeQueryAndLog(s,"select * from slavesnapshotstatus where clusterid = "+cl.getId());
  		rs.next();
- 		Snapshot slaveS = new Snapshot(new TransactionID(rs.getLong("master_current_xaction")),
+ 		Snapshot slaveS = new Snapshot(rs.getLong("master_id"),
  					       new TransactionID(rs.getLong("master_min_xaction")),
  					       new TransactionID(rs.getLong("master_max_xaction")),
  					       rs.getString("master_outstanding_xactions"));
 		rs = executeQueryAndLog(s,
 					"select * from snapshotlog_"+cl.getId()+
-					" where current_xaction = (select max(current_xaction) "+
-					"                           from snapshotlog_"+cl.getId()+")");
+					" where id = (select max(id) from snapshotlog_"+cl.getId()+")");
 		rs.next();
-		Snapshot masterS = new Snapshot(new TransactionID(rs.getLong("current_xaction")),
+		Snapshot masterS = new Snapshot(rs.getLong("id"),
 						new TransactionID(rs.getLong("min_xaction")),
 						new TransactionID(rs.getLong("max_xaction")),
 						rs.getString("outstanding_xactions"));
@@ -225,11 +223,11 @@ public class PgExtensionTest {
 		executeAndLog(s,"select bruce.normalmode()");
 		// Update the slave replication status
 		ps = c.prepareStatement("update slavesnapshotstatus "+
-					"   set slave_xaction = 1, master_current_xaction = ?, "+
+					"   set slave_xaction = 1, master_id = ?, "+
 					"       master_min_xaction = ?, master_max_xaction = ?, "+
 					"       master_outstanding_xactions = ?, update_time = now() "+
 					" where clusterid = "+cl.getId());
-		ps.setLong(1,masterS.getCurrentXid().getLong());
+		ps.setLong(1,masterS.getId());
 		ps.setLong(2,masterS.getMinXid().getLong());
 		ps.setLong(3,masterS.getMaxXid().getLong());
 		ps.setString(4,masterS.getInFlight());
